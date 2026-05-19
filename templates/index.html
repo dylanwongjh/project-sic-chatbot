@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERICA - AI Chatbot for SIC Training</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Jost:wght300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Welcome Animation Screen -->
+    <div class="welcome-screen" id="welcomeScreen">
+        <div class="logo-container">
+            <img src="static/projectmindfull.png" 
+                 alt="Mindful Logo" class="welcome-logo">
+        </div>
+        
+        <div class="welcome-text">
+            <h1>ERICA</h1>
+            <p>Empathy & Reassurance in Illness Conversation Assistant</p>
+        </div>
+        
+        <div class="loading-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
+
+    <!-- FIX 1: Removed the stray duplicate <div id="chatInterface"> that was here -->
+
+    <div class="container" id="mainContainer">
+        <header>
+            <h1>ERICA</h1>
+            <p>Empathy & Reassurance in Illness Conversation Assistant</p>
+        </header>
+    
+        <div id="patientProfileBar" style="display: none;">
+            <div class="profile-toggle-bar" id="profileToggleBar">
+                <span>
+                    <i class="fas fa-user-circle"></i> Patient Profile
+                </span>
+                <i class="fas fa-chevron-down" id="profileChevron"></i>
+            </div>
+            <div class="profile-card" id="profileCard" style="display: none;">
+                <div id="profileContent">
+                    <div class="profile-loading">Loading profile...</div>
+            </div>
+            <div class="profile-sim-note">Drawn from reference case - use to guide your approach, not as a script.</div>
+        </div>
+    </div>
+    
+        <div id="scenarioScreen" class="scenario-panel">
+            <h3>What conversation are we preparing for?</h3>
+            <p>Briefly describe the patient's situation or the specific difficulty you are facing.</p>
+            <textarea id="scenarioInput" placeholder="e.g., Discussing palliative care with a family..."></textarea>
+            <button id="beginChat">Start with ERICA</button>
+        </div>
+    
+        <!-- FIX 1: This is now the only element with id="chatInterface" -->
+        <div id="chatInterface" style="display: none;">
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages"></div>
+            </div>
+    
+            <div class="input-area">
+                <div class="typing-indicator" id="typingIndicator">
+                    <span></span><span></span><span></span>
+                </div>
+                <textarea id="userInput" placeholder="Type your message here..."></textarea>
+                <button id="sendButton"><i class="fas fa-paper-plane"></i> Send</button>
+            </div>
+
+            <!-- Resources panel moved here so it only shows once a session is active -->
+            <div class="resources-panel" id="frameworkPanel" style="display: none;">
+                <div class="framework-tabs">
+                    <button class="fw-tab active" data-fw="spikes">SPIKES</button>
+                    <button class="fw-tab" data-fw="nurse">NURSE</button>
+                    <button class="fw-tab" data-fw="sic">SIC Guide</button>
+                </div>
+                <div class="framework-content" id="frameworkContent"></div>
+            </div>
+            <div class="resources-toggle-bar">
+                <button id="resourcesButton">
+                    <i class="fas fa-book-open"></i> Show Frameworks
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Animation Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            const mainContainer = document.getElementById('mainContainer');
+
+            setTimeout(() => {
+                welcomeScreen.classList.add('fade-out');
+                document.body.style.overflow = 'visible';
+
+                setTimeout(() => {
+                    mainContainer.classList.add('show');
+                    // FIX 2: Was document.getElementByID (capital ID) — now correctly lowercase
+                    document.getElementById('chatInterface').style.display = 'none';
+                    document.getElementById('scenarioScreen').style.display = 'block';
+                }, 500);
+            }, 4000);
+            
+            // Click to skip animation
+            welcomeScreen.addEventListener('click', () => {
+                welcomeScreen.classList.add('fade-out');
+                document.body.style.overflow = 'visible';
+                mainContainer.classList.add('show');
+            });
+        });
+    </script>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
