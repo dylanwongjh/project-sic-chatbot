@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify, session
 from flask_cors import CORS
-from config import GEMINI_API_KEY
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 from datetime import datetime
 import json
 import re
@@ -33,8 +33,6 @@ MAX_HISTORY_TURNS = 20
 
 class ERICA:
 
-    GEMINI_API_KEY = GEMINI_API_KEY
-
     MODELS = [
         "gemini-3-flash-preview",
         "gemini-2.5-flash",
@@ -61,10 +59,9 @@ class ERICA:
     )
 
     def __init__(self):
-        # Inititalise the client with the API key config
-        self.api_key = self.GEMINI_API_KEY
+        self.api_key = GEMINI_API_KEY
         if not self.api_key:
-            raise ValueError("API key not found. Please set the GEMINI_API_KEY in config.py")
+            raise ValueError("API key not found. Please set the GEMINI_API_KEY environment variable.")
 
         # Configure the genai library with the API key
         self.client = genai.Client(api_key=self.api_key)
@@ -294,68 +291,61 @@ class ERICA:
 
         eval_prompt = f"""You are an expert clinical communication trainer evaluating a Serious Illness Conversation (SIC) practice session.
 
-        Scenario: {scenario}
+SCENARIO: {scenario}
 
-        TRANSCRIPT:
-        {transcript}
+TRANSCRIPT:
+{transcript}
 
-        Your task: Evaluate the user's performance. Return ONLY a valid JSON object, no markdown, no preamble, no trailing text.
+Your task: Carefully read the transcript above and evaluate the TRAINEE NURSE's performance based solely on what they actually said. Do NOT copy example values — every boolean, score, and note must reflect the real transcript.
 
-        The JSON must follow this exact structure:
-        {{
-            "overall_summary": "2-3 sentence narrative summary of the session. Acknowledge strengths first, then key areas for growth.",
-            "framework_checklist": {{
-                "SPIKES": [
-                {{"step": "Setting", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Perception", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Invitation", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Knowledge", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Empathy", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Strategy & Summary", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}}
-                ],
-                "NURSE": [
-                {{"step": "Name", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Understand", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Respect", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Support", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Explore", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}}
-                ],
-                "SIC": [
-                {{"step": "Ask for permission", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Assess understanding", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Share prognosis", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Explore what matters", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Explore fears", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}},
-                {{"step": "Align care with values", "demonstrated": <true if the user established a safe/private space, else false>, "note": "one-line evidence or suggestion"}}
-                ]
-            }},
-            "dimensions": [
-            {{
-                "name": "Empathic Language",
-                "score": <integer 1-5>,
-                "justification": "one sentence explaining the score"
-            }},
-            {{
-                "name": "Information Pacing",
-                "score": <integer 1-5>,
-                "justification": "one sentence explaining the score"
-            }},
-            {{
-                "name": "Emotional Acknowledgement",
-                "score": <integer 1-5>,
-                "justification": "one sentence explaining the score"
-            }}
-            ]
-        }}
+Return ONLY a valid JSON object with no markdown, no preamble, no trailing text, using this exact structure:
 
-        Scoring guide for dimensions (1-5):
-        1 = Not demonstrated at all
-        2 = Briefly attempted but ineffective
-        3 = Adequately demonstrated
-        4 = Clearly and consistently demnonstrated
-        5 = Exemplary performance
+{{
+    "overall_summary": "<2-3 sentences: start with a genuine strength observed, then identify the most important area for improvement>",
+    "framework_checklist": {{
+        "SPIKES": [
+            {{"step": "Setting", "demonstrated": <true if the trainee established a safe/private space or acknowledged the setting, else false>, "note": "<one specific line of evidence from the transcript, or a concrete suggestion if not demonstrated>"}},
+            {{"step": "Perception", "demonstrated": <true if trainee asked what the patient already knows/understands, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Invitation", "demonstrated": <true if trainee asked how much information the patient wants before sharing, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Knowledge", "demonstrated": <true if trainee shared clinical information clearly and in manageable chunks, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Emotions", "demonstrated": <true if trainee explicitly acknowledged or responded to the patient's emotions, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Strategy & Summary", "demonstrated": <true if trainee summarised the conversation or outlined next steps, else false>, "note": "<evidence or suggestion>"}}
+        ],
+        "NURSE": [
+            {{"step": "Naming", "demonstrated": <true if trainee named or labelled the patient's emotion, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Understanding", "demonstrated": <true if trainee expressed understanding without assuming, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Respecting", "demonstrated": <true if trainee praised the patient's strength or coping, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Supporting", "demonstrated": <true if trainee expressed ongoing commitment or presence, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Exploring", "demonstrated": <true if trainee invited the patient to share more about feelings, else false>, "note": "<evidence or suggestion>"}}
+        ],
+        "SIC": [
+            {{"step": "Ask for permission", "demonstrated": <true if trainee asked permission before discussing serious topics, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Assess understanding", "demonstrated": <true if trainee explored what the patient already knows, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Share prognosis", "demonstrated": <true if trainee shared honest but compassionate prognostic information, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Explore what matters", "demonstrated": <true if trainee asked about the patient's goals or priorities, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Explore fears", "demonstrated": <true if trainee asked about what the patient is most afraid of, else false>, "note": "<evidence or suggestion>"}},
+            {{"step": "Align care with values", "demonstrated": <true if trainee connected patient's values to a care plan, else false>, "note": "<evidence or suggestion>"}}
+        ]
+    }},
+    "dimensions": [
+        {{"name": "Empathic Language", "score": <integer 1-5>, "justification": "<one sentence citing a specific example from the transcript>"}},
+        {{"name": "Information Pacing", "score": <integer 1-5>, "justification": "<one sentence citing a specific example>"}},
+        {{"name": "Emotional Acknowledgement", "score": <integer 1-5>, "justification": "<one sentence citing a specific example>"}}
+    ]
+}}
 
-        Be fair, specific and constructive. Base all notes and justifications strictly on what appears in the transcript."""
+Scoring guide (apply strictly based on transcript evidence):
+1 = Not demonstrated at all
+2 = Briefly attempted but ineffective or clumsy
+3 = Adequately demonstrated — present but could be stronger
+4 = Clearly and consistently demonstrated
+5 = Exemplary — a model response others should follow
+
+Critical rules:
+- Every "demonstrated" value must reflect actual trainee behaviour in the transcript.
+- Every score must be independently justified by what the trainee actually said or failed to say.
+- Notes and justifications must quote or paraphrase specific trainee lines where possible.
+- If the conversation is very short, scores should generally be lower (1-2)."""
 
         try:
             response = self.client.models.generate_content(
